@@ -8,6 +8,8 @@ First, download, build and install:
 
 ```SegyIO``` SEG-Y reading: https://github.com/equinor/segyio.git
 
+```Indicators``` library headers are already in ```include``` folder
+
 FreeUSP Toolkit https://stuartschmitt.com/FreeUSP/
 
 ### Install
