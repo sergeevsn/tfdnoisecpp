@@ -1,0 +1,8 @@
+n_fft=32
+n_overlap=16
+trace_aperture=15
+input_file=../test_data/01_test_shots.sgy
+output_file=../test_data/02_test_shots_denoised.sgy
+threshold_multipliers=0 - 1000, 0.5 - 1, 1.5 - 1
+id_offset=9
+
