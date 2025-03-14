@@ -8,7 +8,7 @@
 
 namespace tfd {
 
-// Optimized window calculation [[2]]
+// Optimized window calculation 
 real_vector window_hann(size_t n) {
     real_vector window(n);
     const float factor = 2.0f * M_PI / (n - 1);
@@ -18,7 +18,7 @@ real_vector window_hann(size_t n) {
     return window;
 }
 
-// Vectorized reflection padding [[8]]
+// Vectorized reflection padding
 real_vector reflect_padding(const real_vector& trace, size_t target_length) {
     real_vector padded = trace;
     while (padded.size() < target_length) {
@@ -28,7 +28,7 @@ real_vector reflect_padding(const real_vector& trace, size_t target_length) {
     return padded;
 }
 
-// Optimized median calculation using nth_element [[5]]
+// Optimized median calculation using nth_element 
 float compute_median(real_vector values) {
     if (values.empty()) return 0.0f;
     auto mid = values.begin() + values.size()/2;
@@ -42,9 +42,9 @@ complex_spectrogram compute_stft(const seismic_data& seismic, size_t n_fft, size
 
     complex_spectrogram spectrograms;
     const size_t window_step = n_fft - n_overlap;
-    const real_vector window = window_hann(n_fft); // Precomputed once [[2]]
+    const real_vector window = window_hann(n_fft); // Precomputed once 
 
-    // Reuse FFTW buffers [[7]]
+    // Reuse FFTW buffers
     std::vector<float> in(n_fft);
     std::vector<fftwf_complex> out(n_fft/2 + 1);
     fftwf_plan plan = fftwf_plan_dft_r2c_1d(n_fft, in.data(), out.data(), FFTW_MEASURE);
@@ -60,7 +60,7 @@ complex_spectrogram compute_stft(const seismic_data& seismic, size_t n_fft, size
         for (size_t frame = 0; frame < n_frames; ++frame) {
             size_t offset = frame * window_step;
 
-            // Apply window using vectorized operations [[8]]
+            // Apply window using vectorized operations
             std::transform(padded.begin() + offset, 
                           padded.begin() + offset + n_fft,
                           window.begin(),
@@ -92,7 +92,7 @@ seismic_data compute_istft(const complex_spectrogram& spectrograms,
         std::transform(window.begin(), window.end(), sq.begin(),
                       [](float w){ return w*w; });
         return sq;
-    }(); // Precompute squared window [[7]]
+    }(); // Precompute squared window
 
     std::vector<fftwf_complex> in(n_fft/2 + 1);
     std::vector<float> out(n_fft);
@@ -108,7 +108,7 @@ seismic_data compute_istft(const complex_spectrogram& spectrograms,
         for (size_t frame = 0; frame < n_frames; ++frame) {
             size_t offset = frame * window_step;
 
-            // Copy frequency data [[7]]
+            // Copy frequency data
             for (size_t i = 0; i < n_fft/2 +1; ++i) {
                 in[i][0] = spectrum[frame*(n_fft/2+1)+i].real();
                 in[i][1] = spectrum[frame*(n_fft/2+1)+i].imag();
@@ -116,7 +116,7 @@ seismic_data compute_istft(const complex_spectrogram& spectrograms,
 
             fftwf_execute(plan);
 
-            // Overlap-add with precomputed window [[8]]
+            // Overlap-add with precomputed window 
             for (size_t i = 0; i < n_fft; ++i) {
                 if (offset + i >= output_size) break;
                 output[offset+i] += out[i] * window[i] / n_fft;

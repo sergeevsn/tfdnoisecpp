@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
         seismogram_traces[value].push_back(i);
     }
 
-    // Initialize progress tracking [[9]][[8]]
+    // Initialize progress tracking 
     auto start_time = std::chrono::steady_clock::now();
     indicators::ProgressBar progress_bar{
         indicators::option::BarWidth{50},
