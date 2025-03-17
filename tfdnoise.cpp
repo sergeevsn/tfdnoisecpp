@@ -8,6 +8,7 @@
 #include <indicators/progress_bar.hpp>
 #include <segyio/segy.h>
 #include "tfd.h"
+#include "SimpleIni.h"
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -15,43 +16,59 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    std::string param_file = argv[1];
-    std::ifstream param_stream(param_file);
-    if (!param_stream.is_open()) {
-        std::cerr << "Error: Could not open parameter file " << param_file << std::endl;
+    CSimpleIniA ini;
+    ini.SetUnicode();
+
+    // Load Parameter file
+    SI_Error rc = ini.LoadFile(argv[1]);
+    if (rc < 0) {
+        std::cerr << "Error: Could not open parameter file " << argv[1] << std::endl;
         return EXIT_FAILURE;
     }
 
-    std::map<std::string, std::string> params;
-    std::string line;
-    while (std::getline(param_stream, line)) {
-        std::istringstream iss(line);
-        std::string key, value;
-        if (std::getline(iss, key, '=') && std::getline(iss, value)) {
-            params[key] = value;
-            std::cout << "Key: " << key << "; Value: " << value << std::endl;
-        }
+    // List parameters in console
+    CSimpleIniA::TNamesDepend keys;
+    ini.GetAllKeys("", keys);
+    std::cout << "Parameters from file " << argv[1] << ":" << std::endl;
+    for (const auto& key : keys) {
+        const char* value = ini.GetValue("", key.pItem);
+        std::cout << key.pItem << " = " << value << std::endl;
     }
 
     // Extract parameters
-    size_t n_fft = std::stoul(params["n_fft"]);
-    size_t n_overlap = std::stoul(params["n_overlap"]);
-    size_t trace_aperture = std::stoul(params["trace_aperture"]);
-    std::string input_file = params["input_file"];
-    std::string output_file = params["output_file"];
-    int id_offset = std::stoi(params["id_offset"]);
+    size_t n_fft = ini.GetLongValue("", "n_fft", 0);    
+    size_t trace_aperture = ini.GetLongValue("", "trace_aperture", 0);
+    std::string input_file = ini.GetValue("", "input_file", "");  
+    std::string output_file = ini.GetValue("", "output_file", "");
+    int id_offset = ini.GetLongValue("", "id_offset", 0);
 
-    // Parse threshold multipliers
+    // Check required parameters
+    if (n_fft == 0 || trace_aperture == 0 ||
+        input_file.empty() || output_file.empty()) {                // <-- исправлено
+        std::cerr << "Error: Missing required parameters" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // Parsing threshold multipliers
     std::vector<std::pair<float, float>> threshold_multipliers;
-    std::string threshold_str = params["threshold_multipliers"];
-    threshold_str.erase(std::remove_if(threshold_str.begin(), threshold_str.end(), ::isspace), threshold_str.end());
-    std::istringstream iss_cleaned(threshold_str);
+    const char* threshold_str = ini.GetValue("", "threshold_multipliers", "");
+    std::string cleaned_str(threshold_str);
+    
+    // Delete spaces
+    cleaned_str.erase(std::remove_if(cleaned_str.begin(), cleaned_str.end(), ::isspace), 
+                     cleaned_str.end());
+    
+    // Split to pairs
+    std::istringstream iss_cleaned(cleaned_str);
     std::string pair_str;
     while (std::getline(iss_cleaned, pair_str, ',')) {
         std::istringstream pair_ss(pair_str);
         std::string first, second;
         if (std::getline(pair_ss, first, '-') && std::getline(pair_ss, second)) {
-            threshold_multipliers.emplace_back(std::stof(first), std::stof(second));
+            threshold_multipliers.emplace_back(
+                std::stof(first), 
+                std::stof(second)
+            );
         } else {
             std::cerr << "Error: Invalid threshold multipliers format" << std::endl;
             return EXIT_FAILURE;
@@ -154,6 +171,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Process data
+        auto n_overlap = n_fft/2;
         auto spectrograms = tfd::compute_stft(data, n_fft, n_overlap);
         auto filtered = tfd::tfd_noise_rejection(spectrograms, trace_aperture, threshold_multipliers, sample_interval, n_fft, n_overlap);
         auto processed_data = tfd::compute_istft(filtered, n_fft, n_overlap, samples);
