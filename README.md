@@ -12,6 +12,14 @@ First, download, build and install:
 
 FreeUSP Toolkit https://stuartschmitt.com/FreeUSP/
 
+### Parameter file explanation
+```n_fft=64```     - number of samples in STFT window
+```trace_aperture=25```       - number of adjacent traces from which the median amplitude is taken for replacing those larger than threshold
+```input_file=../test_data/01_test_shots.sgy```        - input SEG-Y file
+```output_file=../test_data/02_test_shots_denoised.sgy```      - output SEG-Y file
+```threshold_multipliers=0 - 1000, 0.5 - 1, 1.5 - 1```       - you can specify time values versus threshold multipliers, for example if you want to leave the top of gather untouched
+```gather_byte=9```    - starting byte of gather identifier in SEG-Y trace header, 9 is usually for Field Number, 21 for CDP and so on
+
 ### Install
 ```bash
 git clone https://github.com/sergeevsn/tfdnoisepy.git
