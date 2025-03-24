@@ -35,5 +35,5 @@ make
 
 ### Test run
 ```bash
-./tfdnoise ../params.tfd
+mpirun -np 4 ./tfdnoise ../params.tfd
 ```
